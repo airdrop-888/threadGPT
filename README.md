@@ -124,8 +124,8 @@ python main.py analytics
 <td>
 
 ### 📝 Bulk Operations
-- **CSV Bulk Schedule** 50+ posts at once
-- **Template System** for recurring content
+- **Excel & CSV Support** - Use .xlsx or .csv
+- **Pre-formatted Template** - Run one command, get clean Excel
 - **Media Support** (images, videos)
 - **Hashtag Automation**
 
@@ -168,23 +168,30 @@ python main.py analytics --days 7
 python main.py status
 ```
 
-### Bulk Schedule from CSV
+### Bulk Schedule from Excel (Recommended!) 📊
 
 ```bash
-# Create your posts in Excel/CSV
-# Format: date,time,content,media,hashtags
+# Step 1: Generate pre-formatted Excel template
+python create_excel_template.py
 
-# Schedule all at once
-python bulk_schedule.py my_schedule.csv
+# Step 2: Open the file, fill in your posts (clean & structured!)
+# → schedule_template.xlsx opens in Excel
+# → Blue header, proper column widths, text wrapping
+# → Instructions sheet included
+
+# Step 3: Schedule all posts at once
+python bulk_schedule.py schedule_template.xlsx
 ```
 
-**Example CSV:**
-```csv
-date,time,content,media,hashtags
-2024-10-07,09:00,"Good morning! 💪",,motivation
-2024-10-07,19:00,"Evening update 🌙",photo.jpg,evening life
-2024-10-08,12:00,"Lunch time tips! 💡",,productivity
-```
+**Excel Template Preview:**
+
+| date | time | content | media | hashtags |
+|------|------|---------|-------|----------|
+| 2024-10-07 | 09:00 | Good morning! Starting the week strong! | | motivation monday |
+| 2024-10-07 | 19:00 | Evening update: Progress over perfection! | photo.jpg | motivation |
+| 2024-10-08 | 12:00 | Quick tip: Automate repetitive tasks! | | productivity |
+
+> 💡 **Tip**: Also supports `.csv` format → `python bulk_schedule.py schedule.csv`
 
 ### Configuration
 
