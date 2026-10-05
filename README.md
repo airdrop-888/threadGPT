@@ -74,13 +74,23 @@ notepad config.yaml
 python setup_cookies.py
 ```
 
-**4. Start Automating!**
+**4. Test Your Setup** (Optional but Recommended!)
 ```bash
-# Schedule your first post
+# Schedule a test post (will post in 2 minutes)
+python test_post.py
+```
+This will schedule a test post to verify everything works! ✅
+
+**5. Start Automating!**
+```bash
+# Schedule your first real post
 python main.py post "Hello from ThreadsGPT! 🚀" --time 19:00
 
 # View your schedule
 python main.py schedule
+
+# Check analytics
+python main.py analytics
 ```
 
 **That's it!** You're ready to automate Threads! 🎉
