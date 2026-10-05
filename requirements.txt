@@ -1,16 +1,16 @@
 # Core dependencies
 requests>=2.31.0
-beautifulsoup4>=4.12.0
 python-dateutil>=2.8.2
 
-# Data & Analytics
-pandas>=2.0.0
-numpy>=1.24.0
-matplotlib>=3.7.0
-seaborn>=0.12.0
+# Excel Support
+openpyxl>=3.1.0
 
-# Database
-sqlalchemy>=2.0.0
+# Data & Analytics (install optional)
+# pandas>=2.0.0
+# matplotlib>=3.7.0
+
+# Database (built-in)
+# sqlalchemy>=2.0.0  # Optional, using SQLite built-in
 
 # Configuration
 pyyaml>=6.0

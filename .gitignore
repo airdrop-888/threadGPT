@@ -29,10 +29,16 @@ data/logs/*.log
 data/sessions/*.json
 data/post_queue.json
 
-# User Generated
+# User Generated Schedule Files
 my_*.csv
+my_*.xlsx
 schedule_*.csv
+schedule_*.xlsx
 *_schedule.csv
+*_schedule.xlsx
+
+# Generated template (local only, re-create with create_excel_template.py)
+schedule_template.xlsx
 
 # OS Files
 Thumbs.db
