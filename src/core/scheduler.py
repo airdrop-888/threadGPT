@@ -214,49 +214,65 @@ class Scheduler:
     
     def _execute_post(self, post_id: str):
         """
-        Execute scheduled post
-        
+        Execute a scheduled post by calling the real Threads API.
+
         Args:
-            post_id: Post ID to execute
+            post_id: ID of the post to send
         """
         queue = self._load_queue()
-        
-        # Find post
+
+        # Find post in queue
         post = next((p for p in queue if p['id'] == post_id), None)
         if not post:
-            print(f"Post {post_id} not found!")
+            print(f"[ERROR] Post {post_id} not found in queue!")
             return
-        
+
+        print(f"[INFO] Executing post: {post_id}")
+        print(f"[INFO] Content: {post['content'][:60]}...")
+
         try:
-            # TODO: Implement actual posting to Threads API
-            print(f"Posting: {post['content'][:50]}...")
-            
-            # Update status
-            post['status'] = 'posted'
-            post['posted_at'] = datetime.now(self.timezone).isoformat()
-            
-            self._save_queue(queue)
-            
-            print(f"✓ Post {post_id} published successfully!")
-            
+            from src.core.api_client import ThreadsAPI
+
+            api = ThreadsAPI()
+            result = api.create_post(
+                text=post['content'],
+                media_paths=post.get('media') or None
+            )
+
+            if result.get('success'):
+                post['status']    = 'posted'
+                post['posted_at'] = datetime.now(self.timezone).isoformat()
+                self._save_queue(queue)
+                print(f"[SUCCESS] Post {post_id} published!")
+
+            else:
+                error = result.get('error', 'Unknown error')
+                print(f"[ERROR] Failed to publish post: {error}")
+                post['status']  = 'failed'
+                post['error']   = error
+                post['attempts'] = post.get('attempts', 0) + 1
+                self._save_queue(queue)
+
+                # Auto-retry up to 3 times (30 min gap)
+                if post['attempts'] < 3:
+                    retry_time = datetime.now(self.timezone) + timedelta(minutes=30)
+                    self.scheduler.add_job(
+                        func=self._execute_post,
+                        trigger=DateTrigger(run_date=retry_time),
+                        args=[post_id],
+                        id=f"{post_id}_retry_{post['attempts']}",
+                        replace_existing=True
+                    )
+                    print(f"[INFO] Retry scheduled in 30 minutes.")
+
         except Exception as e:
-            print(f"✗ Failed to post {post_id}: {e}")
-            post['status'] = 'failed'
-            post['error'] = str(e)
-            post['attempts'] += 1
-            
+            print(f"[ERROR] Exception while posting: {e}")
+            post['status']   = 'failed'
+            post['error']    = str(e)
+            post['attempts'] = post.get('attempts', 0) + 1
             self._save_queue(queue)
-            
-            # Retry if attempts < 3
-            if post['attempts'] < 3:
-                retry_time = datetime.now(self.timezone) + timedelta(minutes=30)
-                self.scheduler.add_job(
-                    func=self._execute_post,
-                    trigger=DateTrigger(run_date=retry_time),
-                    args=[post_id],
-                    id=f"{post_id}_retry_{post['attempts']}",
-                    replace_existing=True
-                )
+
+
     
     def get_queue(self) -> List[Dict]:
         """Get all scheduled posts"""
