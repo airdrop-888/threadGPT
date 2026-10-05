@@ -1,0 +1,121 @@
+# ThreadsGPT Configuration
+
+# ========================================
+# ACCOUNT SETTINGS
+# ========================================
+account:
+  username: "your_username"  # Threads username (tanpa @)
+
+# ========================================
+# COOKIES (dari Browser DevTools)
+# ========================================
+# Cara ambil cookies:
+# 1. Buka threads.com di browser
+# 2. Tekan F12
+# 3. Tab Application > Cookies > threads.com
+# 4. Copy nilai sessionid, csrftoken, ds_user_id
+cookies:
+  sessionid: ""  # Paste sessionid disini
+  csrftoken: ""  # Paste csrftoken disini
+  ds_user_id: ""  # Paste ds_user_id disini
+
+# ========================================
+# POSTING SCHEDULE
+# ========================================
+scheduler:
+  enabled: true
+  timezone: "Asia/Jakarta"  # Sesuaikan timezone Anda
+  
+  # Waktu posting optimal (format HH:MM)
+  posting_times:
+    - "09:00"  # Pagi
+    - "12:00"  # Siang
+    - "19:00"  # Sore (biasanya paling ramai)
+    - "21:00"  # Malam
+  
+  # Otomatis pilih waktu terbaik?
+  auto_detect_best_time: true
+
+# ========================================
+# SAFETY LIMITS (PENTING!)
+# ========================================
+limits:
+  posts_per_day: 5        # Max posts per hari (aman: 3-5)
+  min_delay_hours: 2      # Min jarak antar post (jam)
+  api_call_delay: 10      # Delay antar API call (detik)
+
+# ========================================
+# YOUR NICHE & TARGET
+# ========================================
+niche:
+  # Kategori konten Anda
+  category: "Technology"  # Tech, Lifestyle, Business, etc
+  
+  # Keywords untuk monitoring
+  keywords:
+    - "AI"
+    - "Python"
+    - "Automation"
+  
+  # Target audience
+  target_audience: "Tech enthusiasts, developers"
+  
+  # Competitor accounts untuk track (optional)
+  competitors:
+    # - "username1"
+    # - "username2"
+
+# ========================================
+# CONTENT SETTINGS
+# ========================================
+content:
+  # Hashtag strategy
+  max_hashtags: 3
+  default_hashtags:
+    - "#tech"
+    - "#AI"
+  
+  # Content length
+  optimal_length_min: 100
+  optimal_length_max: 280
+
+# ========================================
+# ANALYTICS
+# ========================================
+analytics:
+  enabled: true
+  track_interval_hours: 6  # Check stats setiap 6 jam
+  store_history_days: 90   # Simpan data 90 hari
+
+# ========================================
+# VIRAL CONTENT DETECTOR
+# ========================================
+viral_detector:
+  enabled: true
+  scan_interval_hours: 3    # Scan trending setiap 3 jam
+  min_engagement: 100       # Min engagement = viral
+  viral_score_threshold: 7.0  # Score 7/10 = viral
+
+# ========================================
+# NOTIFICATIONS (Optional)
+# ========================================
+notifications:
+  enabled: false
+  
+  # Discord webhook (optional)
+  discord:
+    webhook_url: ""
+  
+  # Telegram bot (optional)
+  telegram:
+    bot_token: ""
+    chat_id: ""
+
+# ========================================
+# ADVANCED (Jangan ubah kecuali tahu!)
+# ========================================
+advanced:
+  database_path: "data/threadsgpt.db"
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  retry_attempts: 3
+  timeout_seconds: 30

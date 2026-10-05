@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ThreadsGPT Sensitive Files
+config.yaml
+*.har
+data/*.db
+data/logs/*.log
+data/sessions/*.json
+data/post_queue.json
+
+# User Generated
+my_*.csv
+schedule_*.csv
+*_schedule.csv
+
+# OS Files
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak
+temp/
