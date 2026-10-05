@@ -174,24 +174,26 @@ python main.py status
 # Step 1: Generate pre-formatted Excel template
 python create_excel_template.py
 
-# Step 2: Open the file, fill in your posts (clean & structured!)
-# → schedule_template.xlsx opens in Excel
-# → Blue header, proper column widths, text wrapping
-# → Instructions sheet included
+# Step 2: Open schedule_template.xlsx → fill in your posts → Save
 
 # Step 3: Schedule all posts at once
 python bulk_schedule.py schedule_template.xlsx
 ```
 
-**Excel Template Preview:**
+**Column Format Guide:**
 
-| date | time | content | media | hashtags |
-|------|------|---------|-------|----------|
-| 2024-10-07 | 09:00 | Good morning! Starting the week strong! | | motivation monday |
-| 2024-10-07 | 19:00 | Evening update: Progress over perfection! | photo.jpg | motivation |
-| 2024-10-08 | 12:00 | Quick tip: Automate repetitive tasks! | | productivity |
+| Column | Format | Contoh | Keterangan |
+|--------|--------|--------|------------|
+| `date` | `YYYY-MM-DD` | `2024-10-07` | Tahun-Bulan-Tanggal |
+| `time` | `HH:MM` | `19:00` | Format 24 jam |
+| `content` | Text bebas | `Halo semua!` | Maks ~500 karakter |
+| `media` | Nama file | `foto.jpg` | Opsional |
+| `hashtags` | Pisahkan spasi | `tech AI coding` | Tanpa tanda # |
 
-> 💡 **Tip**: Also supports `.csv` format → `python bulk_schedule.py schedule.csv`
+> 💡 **Tips**:
+> - Template sudah punya **dropdown** untuk kolom `time` (klik cell → pilih jam)
+> - Kolom `date` punya **tooltip format** saat diklik
+> - Juga support `.csv` → `python bulk_schedule.py schedule.csv`
 
 ### Configuration
 

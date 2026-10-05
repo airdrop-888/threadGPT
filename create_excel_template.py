@@ -18,8 +18,14 @@ try:
     ws = wb.active
     ws.title = "Posts Schedule"
     
-    # Headers
-    headers = ['date', 'time', 'content', 'media', 'hashtags']
+    # Headers with format hints
+    headers = [
+        'date\n(YYYY-MM-DD)',   # e.g. 2024-10-07
+        'time\n(HH:MM)',        # e.g. 19:00
+        'content',
+        'media\n(filename.jpg)',
+        'hashtags\n(space separated)'
+    ]
     ws.append(headers)
     
     # Format header row - Professional blue theme
@@ -38,7 +44,7 @@ try:
     for cell in ws[1]:
         cell.fill = header_fill
         cell.font = header_font
-        cell.alignment = header_alignment
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = thin_border
     
     # Add example data with formatting
@@ -73,10 +79,41 @@ try:
             if cell.column in [1, 2]:  # A and B columns
                 cell.alignment = Alignment(horizontal="center", vertical="center")
     
-    # Set row heights for better spacing
-    ws.row_dimensions[1].height = 25  # Header
+    # Set row heights
+    ws.row_dimensions[1].height = 42  # Header taller so format hint is visible
     for row_num in range(2, ws.max_row + 1):
         ws.row_dimensions[row_num].height = 30  # Data rows
+
+    # Data Validation: time column (B) - dropdown of common times
+    from openpyxl.worksheet.datavalidation import DataValidation
+    time_dv = DataValidation(
+        type="list",
+        formula1='"06:00,07:00,08:00,09:00,10:00,11:00,12:00,13:00,14:00,15:00,16:00,17:00,18:00,19:00,20:00,21:00,22:00,23:00"',
+        allow_blank=True,
+        showDropDown=False,
+        showErrorMessage=True,
+        errorTitle='Format Salah',
+        error='Gunakan format HH:MM (contoh: 19:00)',
+        showInputMessage=True,
+        promptTitle='Format Waktu',
+        prompt='Pilih dari dropdown atau ketik HH:MM (24 jam)\nContoh: 09:00, 19:00'
+    )
+    ws.add_data_validation(time_dv)
+    time_dv.sqref = 'B2:B1000'
+
+    # Data Validation: date column (A) - show format hint
+    date_dv = DataValidation(
+        type="date",
+        allow_blank=True,
+        showErrorMessage=True,
+        errorTitle='Format Salah',
+        error='Gunakan format YYYY-MM-DD (contoh: 2024-10-07)',
+        showInputMessage=True,
+        promptTitle='Format Tanggal',
+        prompt='Ketik tanggal dengan format:\nYYYY-MM-DD\nContoh: 2024-10-07'
+    )
+    ws.add_data_validation(date_dv)
+    date_dv.sqref = 'A2:A1000'
     
     # Freeze header row
     ws.freeze_panes = 'A2'
