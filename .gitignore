@@ -40,6 +40,10 @@ schedule_*.xlsx
 # Generated template (local only, re-create with create_excel_template.py)
 schedule_template.xlsx
 
+# User images/media (keep the /images folder but not user files)
+images/*
+!images/README.md
+
 # OS Files
 Thumbs.db
 

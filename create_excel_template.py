@@ -23,7 +23,7 @@ try:
         'date\n(YYYY-MM-DD)',   # e.g. 2024-10-07
         'time\n(HH:MM)',        # e.g. 19:00
         'content',
-        'media\n(filename.jpg)',
+        'media\n(images/foto.jpg)',
         'hashtags\n(space separated)'
     ]
     ws.append(headers)

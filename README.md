@@ -187,10 +187,11 @@ python bulk_schedule.py schedule_template.xlsx
 | `date` | `YYYY-MM-DD` | `2024-10-07` | Tahun-Bulan-Tanggal |
 | `time` | `HH:MM` | `19:00` | Format 24 jam |
 | `content` | Text bebas | `Halo semua!` | Maks ~500 karakter |
-| `media` | Nama file | `foto.jpg` | Opsional |
+| `media` | Path file | `images/foto.jpg` | Simpan di folder `images/` |
 | `hashtags` | Pisahkan spasi | `tech AI coding` | Tanpa tanda # |
 
 > 💡 **Tips**:
+> - Simpan semua file gambar/video di folder **`images/`**
 > - Template sudah punya **dropdown** untuk kolom `time` (klik cell → pilih jam)
 > - Kolom `date` punya **tooltip format** saat diklik
 > - Juga support `.csv` → `python bulk_schedule.py schedule.csv`
