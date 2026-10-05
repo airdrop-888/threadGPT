@@ -148,16 +148,38 @@ class Scheduler:
         return now.replace(hour=19, minute=0, second=0, microsecond=0) + timedelta(days=1)
     
     def _parse_time(self, time_str: str) -> datetime:
-        """Parse time string to datetime"""
-        hour, minute = map(int, time_str.split(':'))
+        """Parse time string to datetime.
+        
+        Supports:
+            - 'HH:MM'            e.g. '19:00'
+            - 'YYYY-MM-DD HH:MM' e.g. '2026-10-05 18:53'
+        """
         now = datetime.now(self.timezone)
-        scheduled = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         
-        # If time has passed, schedule for tomorrow
-        if scheduled <= now:
-            scheduled += timedelta(days=1)
+        # Full datetime string: 'YYYY-MM-DD HH:MM'
+        if len(time_str) > 5:
+            try:
+                naive = datetime.strptime(time_str, '%Y-%m-%d %H:%M')
+                scheduled = self.timezone.localize(naive)
+                return scheduled
+            except ValueError:
+                pass
         
-        return scheduled
+        # Time only: 'HH:MM'
+        try:
+            hour, minute = map(int, time_str.split(':'))
+            scheduled = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            
+            # If time has already passed today, schedule for tomorrow
+            if scheduled <= now:
+                scheduled += timedelta(days=1)
+            
+            return scheduled
+        except ValueError:
+            raise ValueError(
+                f"Invalid time format: '{time_str}'\n"
+                "Use 'HH:MM' (e.g. '19:00') or 'YYYY-MM-DD HH:MM' (e.g. '2026-10-07 09:00')"
+            )
     
     def _is_time_slot_available(self, target_time: datetime) -> bool:
         """Check if time slot is available"""
