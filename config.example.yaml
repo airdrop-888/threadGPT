@@ -15,9 +15,11 @@ account:
 # 3. Tab Application > Cookies > threads.com
 # 4. Copy nilai sessionid, csrftoken, ds_user_id
 cookies:
-  sessionid: ""  # Paste sessionid disini
-  csrftoken: ""  # Paste csrftoken disini
-  ds_user_id: ""  # Paste ds_user_id disini
+  sessionid: ""  # Paste sessionid disini  (REQUIRED)
+  csrftoken: ""  # Paste csrftoken disini   (REQUIRED)
+  ds_user_id: "" # Paste ds_user_id disini  (REQUIRED)
+  ig_did: ""     # Paste ig_did disini      (optional tapi disarankan)
+  mid: ""        # Paste mid disini         (optional tapi disarankan)
 
 # ========================================
 # POSTING SCHEDULE

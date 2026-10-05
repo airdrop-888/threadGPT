@@ -1,180 +1,245 @@
 """
 ThreadsGPT - Threads API Client
-Real implementation using cookies from config.yaml
+Real implementation using the actual Threads internal API endpoint.
+
+Endpoint confirmed from HAR capture:
+  POST https://www.threads.com/api/v1/media/configure_text_only_post/
 """
 
 import requests
 import json
 import time
 import yaml
+import uuid
+import re
 from typing import Dict, List, Optional
 from pathlib import Path
+from urllib.parse import quote
 
 
 class ThreadsAPI:
-    """Client for posting to Threads.net using browser cookies"""
+    """Post to Threads using the internal configure_text_only_post endpoint."""
 
-    # Threads GraphQL endpoint
-    BASE_URL = "https://www.threads.net/api/graphql"
-    APP_ID   = "238260118697367"
+    POST_URL  = "https://www.threads.com/api/v1/media/configure_text_only_post/"
+    APP_ID    = "238260118697367"
+    USER_AGENT = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/154.0.0.0 Safari/537.36"
+    )
 
     def __init__(self, config_file: str = "config.yaml"):
         self.config = self._load_config(config_file)
-        self.cookies = self.config.get('cookies', {})
+        self.cookies_cfg = self.config.get('cookies', {})
         self._validate_cookies()
-
         self.session = requests.Session()
         self._setup_session()
 
     # ------------------------------------------------------------------
-    # Setup
+    # Init helpers
     # ------------------------------------------------------------------
 
     def _load_config(self, path: str) -> Dict:
-        cfg_path = Path(path)
-        if not cfg_path.exists():
+        cfg = Path(path)
+        if not cfg.exists():
             raise FileNotFoundError(
                 f"Config not found: {path}\n"
                 "Copy config.example.yaml -> config.yaml and fill in your cookies."
             )
-        with open(cfg_path, 'r', encoding='utf-8') as f:
+        with open(cfg, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f) or {}
 
     def _validate_cookies(self):
         required = ['sessionid', 'csrftoken', 'ds_user_id']
-        missing = [k for k in required if not self.cookies.get(k)]
+        missing  = [k for k in required if not self.cookies_cfg.get(k)]
         if missing:
             raise ValueError(
                 f"Missing cookies in config.yaml: {', '.join(missing)}\n"
-                "Open threads.com -> F12 -> Application -> Cookies and copy the values."
+                "Open threads.com -> F12 -> Application -> Cookies -> copy the values."
             )
 
     def _setup_session(self):
-        """Build session with proper headers and cookies"""
-        cookies = self.cookies
+        c = self.cookies_cfg
 
-        # Set cookies on session
-        self.session.cookies.set('sessionid',  cookies['sessionid'],  domain='.threads.net')
-        self.session.cookies.set('csrftoken',  cookies['csrftoken'],  domain='.threads.net')
-        self.session.cookies.set('ds_user_id', cookies['ds_user_id'], domain='.threads.net')
-        if cookies.get('mid'):
-            self.session.cookies.set('mid', cookies['mid'], domain='.threads.net')
+        # Set all cookies
+        cookie_map = {
+            'sessionid':  (c['sessionid'],  '.threads.com'),
+            'csrftoken':  (c['csrftoken'],   '.threads.com'),
+            'ds_user_id': (c['ds_user_id'],  '.threads.com'),
+        }
+        for k, (v, domain) in cookie_map.items():
+            self.session.cookies.set(k, v, domain=domain)
 
-        # Headers that Threads expects
+        # Optional cookies from config
+        for opt in ['ig_did', 'mid', 'rur']:
+            if c.get(opt):
+                self.session.cookies.set(opt, c[opt], domain='.threads.com')
+
+        # Get web_session_id (x-web-session-id) — fetch from home page
+        self.web_session_id = self._fetch_web_session_id()
+
+        # Headers (matches exactly what browser sends)
         self.session.headers.update({
-            'authority':        'www.threads.net',
-            'accept':           '*/*',
-            'accept-language':  'en-US,en;q=0.9',
-            'content-type':     'application/x-www-form-urlencoded',
-            'origin':           'https://www.threads.net',
-            'referer':          'https://www.threads.net/',
-            'sec-fetch-dest':   'empty',
-            'sec-fetch-mode':   'cors',
-            'sec-fetch-site':   'same-origin',
-            'user-agent':       (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/127.0.0.0 Safari/537.36'
-            ),
-            'x-csrftoken':      cookies['csrftoken'],
-            'x-ig-app-id':      self.APP_ID,
-            'x-asbd-id':        '129477',
-            'x-fb-lsd':         self._get_lsd_token(),
+            'authority':            'www.threads.com',
+            'accept':               '*/*',
+            'accept-language':      'en-US,en;q=0.9',
+            'content-type':         'application/x-www-form-urlencoded;charset=UTF-8',
+            'origin':               'https://www.threads.com',
+            'referer':              'https://www.threads.com/',
+            'sec-fetch-dest':       'empty',
+            'sec-fetch-mode':       'cors',
+            'sec-fetch-site':       'same-origin',
+            'user-agent':           self.USER_AGENT,
+            'x-asbd-id':            '359341',
+            'x-bloks-version-id':   'eb91d73a91a524be8e4f4d5e3793a8eada30ccc66f6990edc31e5ddf8c1c3a2c',
+            'x-csrftoken':          c['csrftoken'],
+            'x-ig-app-id':          self.APP_ID,
+            'x-instagram-ajax':     '0',
+            'x-web-session-id':     self.web_session_id,
         })
 
-    def _get_lsd_token(self) -> str:
-        """
-        Fetch the lsd token required by Threads' anti-CSRF system.
-        It is embedded in the HTML of the home page.
-        """
+    def _fetch_web_session_id(self) -> str:
+        """Fetch web_session_id from the Threads home page."""
         try:
             resp = requests.get(
-                'https://www.threads.net/',
-                headers={'user-agent': 'Mozilla/5.0'},
+                'https://www.threads.com/',
+                headers={'user-agent': self.USER_AGENT},
                 cookies={
-                    'sessionid': self.cookies['sessionid'],
-                    'csrftoken': self.cookies['csrftoken'],
+                    'sessionid': self.cookies_cfg['sessionid'],
+                    'csrftoken': self.cookies_cfg['csrftoken'],
                 },
                 timeout=10
             )
-            # Token is in: "LSD",[],{"token":"XXXXXXXXX"}
-            import re
-            match = re.search(r'"LSD",\[\],\{"token":"([^"]+)"\}', resp.text)
-            if match:
-                return match.group(1)
-        except Exception:
-            pass
-        return 'AVqbxe3J_LA'  # fallback token
+            # Pattern: "sessionID":"dopyld:8xuxlv:el86v9"
+            m = re.search(r'"sessionID"\s*:\s*"([^"]+)"', resp.text)
+            if m:
+                sid = m.group(1)
+                print(f"[OK] web_session_id: {sid}")
+                return sid
+        except Exception as e:
+            print(f"[WARN] Could not fetch web_session_id: {e}")
+        return ""
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def create_post(self, text: str, media_paths: Optional[List[str]] = None) -> Dict:
+    def create_post(self, text: str,
+                    media_paths: Optional[List[str]] = None) -> Dict:
         """
-        Create a new Threads post.
+        Create a text-only Threads post.
 
         Args:
-            text:        Post content
-            media_paths: Optional list of local image/video paths
+            text:        Post content (plain text)
+            media_paths: Not used for text-only posts (future feature)
 
         Returns:
-            Dict with keys: success (bool), post_id (str), error (str)
+            {'success': bool, 'post_id': str, 'error': str}
         """
-        try:
-            user_id = self.cookies['ds_user_id']
+        upload_id        = str(int(time.time() * 1000))
+        composer_id      = str(uuid.uuid4())
+        self_thread_id   = str(uuid.uuid4())
 
-            # Build the payload Threads expects
-            payload = {
-                'variables': json.dumps({
-                    'text': text,
-                    'reply_control': 0,   # 0 = everyone can reply
-                }),
-                'doc_id': '7802822539985017',   # create_text_post mutation
-                'lsd':    self.session.headers.get('x-fb-lsd', ''),
+        text_post_app_info = {
+            "community_flair_id":          None,
+            "composer_session_id":         composer_id,
+            "entry_point":                 "profile_completion_milestone",
+            "excluded_inline_media_ids":   "[]",
+            "fediverse_composer_enabled":  True,
+            "is_genai_invocation_post":    False,
+            "is_reply_approval_enabled":   False,
+            "is_spoiler_media":            False,
+            "link_attachment_url":         None,
+            "link_preview_default_render_style": None,
+            "quoted_post_id":              None,
+            "ranking_info_token":          None,
+            "reply_control":               0,
+            "self_thread_context_id":      self_thread_id,
+            "snippet_attachment":          None,
+            "special_effects_enabled_str": None,
+            "tag_header":                  None,
+            "text_with_entities": {
+                "entities": [],
+                "text":     text
             }
+        }
 
+        # Build form data (URL-encoded, same as browser)
+        data = {
+            'async_publish':                '',
+            'audience':                     'default',
+            'barcelona_source_reply_id':    '',
+            'caption':                      text,
+            'chain_id':                     '',
+            'chain_index':                  '',
+            'chain_length':                 '',
+            'creator_geo_gating_info':      '{"whitelist_country_codes":[]}',
+            'cross_share_info':             '',
+            'custom_accessibility_caption': '',
+            'gen_ai_detection_method':      '',
+            'internal_features':            '',
+            'is_meta_only_post':            '',
+            'is_paid_partnership':          '',
+            'is_upload_type_override_allowed': '1',
+            'music_params':                 '',
+            'publish_mode':                 'text_post',
+            'should_include_permalink':     'true',
+            'text_post_app_info':           json.dumps(text_post_app_info),
+            'upload_id':                    upload_id,
+            'web_session_id':               self.web_session_id,
+        }
+
+        # jazoest = sum of ASCII codes of web_session_id + "2" prefix
+        jazoest = "2" + str(sum(ord(c) for c in self.web_session_id))
+        data['jazoest'] = jazoest
+
+        try:
+            print(f"[INFO] Posting to Threads...")
             resp = self.session.post(
-                self.BASE_URL,
-                data=payload,
+                self.POST_URL,
+                data=data,
                 timeout=30
             )
 
-            print(f"[DEBUG] Status: {resp.status_code}")
-            if resp.status_code != 200:
-                return {
-                    'success': False,
-                    'error': f"HTTP {resp.status_code}: {resp.text[:200]}"
-                }
+            print(f"[DEBUG] HTTP {resp.status_code}")
 
-            data = resp.json()
-            print(f"[DEBUG] Response: {json.dumps(data, indent=2)[:300]}")
+            if resp.status_code == 200:
+                try:
+                    result = resp.json()
+                    status = result.get('status', '')
+                    if status == 'ok':
+                        media = result.get('media', {})
+                        post_pk = media.get('pk', 'unknown')
+                        print(f"[SUCCESS] Posted! pk={post_pk}")
+                        return {'success': True, 'post_id': str(post_pk)}
+                    else:
+                        msg = result.get('message', str(result)[:200])
+                        print(f"[FAILED] API returned: {msg}")
+                        return {'success': False, 'error': msg}
+                except ValueError:
+                    # Sometimes response is not JSON
+                    print(f"[FAILED] Non-JSON response: {resp.text[:200]}")
+                    return {'success': False, 'error': f"Non-JSON: {resp.text[:200]}"}
 
-            # Check for errors inside the GraphQL response
-            if 'errors' in data:
-                return {
-                    'success': False,
-                    'error': str(data['errors'])
-                }
-
-            return {
-                'success': True,
-                'post_id': user_id,
-                'data': data
-            }
+            elif resp.status_code == 403:
+                return {'success': False, 'error': 'Forbidden (403) - cookies may be expired. Get fresh cookies.'}
+            elif resp.status_code == 401:
+                return {'success': False, 'error': 'Unauthorized (401) - sessionid invalid.'}
+            else:
+                return {'success': False, 'error': f"HTTP {resp.status_code}: {resp.text[:200]}"}
 
         except requests.exceptions.ConnectionError:
-            return {'success': False, 'error': 'No internet connection'}
+            return {'success': False, 'error': 'No internet connection.'}
         except requests.exceptions.Timeout:
-            return {'success': False, 'error': 'Request timed out'}
+            return {'success': False, 'error': 'Request timed out (30s).'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
     def verify_session(self) -> bool:
-        """Check if the current session is valid"""
+        """Quick check if session is still valid."""
         try:
             resp = self.session.get(
-                'https://www.threads.net/api/v1/users/whoami/',
+                'https://www.threads.com/api/v1/users/whoami/',
                 timeout=10
             )
             return resp.status_code == 200

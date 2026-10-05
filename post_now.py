@@ -25,7 +25,7 @@ def main():
         from src.core.api_client import ThreadsAPI
         api = ThreadsAPI()
         print("\n[OK] Config loaded")
-        print(f"[OK] User ID: {api.cookies['ds_user_id']}")
+        print(f"[OK] User ID: {api.cookies_cfg['ds_user_id']}")
     except FileNotFoundError as e:
         print(f"\n[ERROR] {e}")
         return 1
